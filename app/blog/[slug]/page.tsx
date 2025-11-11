@@ -4,6 +4,7 @@ import {formatDate, getBlogPosts} from 'app/blog/utils'
 import {baseUrl} from 'app/sitemap'
 import {MDXRemote} from 'next-mdx-remote/rsc'
 import {highlight} from 'sugar-high'
+import ViewCounter from 'app/components/view-counter'
 
 // Custom components for MDX
 const components = {
@@ -107,6 +108,7 @@ export default async function Blog({params}) {
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     {formatDate(post.metadata.publishedAt)}
                 </p>
+                <ViewCounter id={`blog/${post.slug}`} className="text-neutral-600 dark:text-neutral-400" />
             </div>
             <article className="prose">
                 <MDXRemote source={post.content} components={components} />

@@ -1,12 +1,16 @@
 import { BlogPosts } from 'app/components/posts'
 import ImageRotator from 'app/components/image-rotator'
+import ViewCounter from 'app/components/view-counter'
 
 export default function Page() {
   return (
     <section>
-      <h1 className="mb-4 text-2xl font-semibold tracking-tighter">
+      <h1 className="mb-1 text-2xl font-semibold tracking-tighter">
         Subham
       </h1>
+      <div className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
+        <ViewCounter id="home" />
+      </div>
 
       {/* Image Rotator under the heading */}
       <div className="mb-8">
