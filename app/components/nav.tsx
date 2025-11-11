@@ -13,6 +13,9 @@ const navItems = {
     'https://www.youtube.com/@subhamkts': {
         name: 'youtube',
     },
+    '/assets/resume.pdf': {
+        name: 'resume',
+    },
 }
 
 export function Navbar() {
