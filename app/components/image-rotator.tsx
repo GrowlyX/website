@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import clsx from "clsx";
 
 export type RotatorImage = {
   src: string
@@ -128,12 +127,9 @@ export default function ImageRotator({
               <button
                 key={`dot-${i}`}
                 aria-label={`Go to slide ${i + 1}`}
-                className={clsx(
-                  'h-2.5 w-2.5 rounded-full transition-colors',
-                  i === index
-                    ? 'bg-white'
-                    : 'bg-white/50 hover:bg-white/80'
-                )}
+                className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                  i === index ? 'bg-white' : 'bg-white/50 hover:bg-white/80'
+                }`}
                 onClick={() => setIndex(i)}
               />
             ))}

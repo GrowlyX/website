@@ -23,11 +23,7 @@ export default function Page() {
       </div>
 
       <p className="mb-4">
-        {`I'm a Vim enthusiast and tab advocate, finding unmatched efficiency in
-        Vim's keystroke commands and tabs' flexibility for personal viewing
-        preferences. This extends to my support for static typing, where its
-        early error detection ensures cleaner code, and my preference for dark
-        mode, which eases long coding sessions by reducing eye strain.`}
+        {`Hi! I'm a software engineer, currently living in the Bay Area. I attend Northeastern University. I enjoy designing, building, and deploying scalable infrastructure. I enjoy building in Kotlin. Have an opinionated tech stack you want to chat about? Msg. me! This website will be occasionally updated with blog posts where I talk about things I am doing, working on, have failed at, or succeeded in.`}
       </p>
       <div className="my-8">
         <BlogPosts />
