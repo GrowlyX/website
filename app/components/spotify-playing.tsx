@@ -67,7 +67,7 @@ export default function SpotifyPlaying() {
                     <img
                         src={status.imageUrl}
                         alt={status.track}
-                        className="h-10 w-10 animate-[spin_10s_linear_infinite] rounded-full object-cover"
+                        className="h-10 w-10 rounded-full object-cover"
                     />
                 ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
@@ -76,7 +76,7 @@ export default function SpotifyPlaying() {
                 )}
                 <div className="flex flex-col overflow-hidden">
                     <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                        Now Listening
+                        Subham is listening to
                     </span>
                     <a
                         href={`https://open.spotify.com/search/${encodeURIComponent(status.track + ' ' + status.artist)}`}
@@ -91,7 +91,6 @@ export default function SpotifyPlaying() {
                     </span>
                 </div>
                 <div className="absolute -top-1 -right-1 h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500"></span>
                 </div>
             </div>

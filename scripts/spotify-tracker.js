@@ -4,13 +4,7 @@ const http = require('http');
 
 // Configuration
 const API_URL = process.env.API_URL || 'http://localhost:3000/api/spotify/update';
-const API_KEY = process.env.SPOTIFY_API_KEY;
-
-if (!API_KEY) {
-    console.error('Error: SPOTIFY_API_KEY environment variable is required.');
-    console.log('Usage: SPOTIFY_API_KEY=your_key API_URL=https://growly.gg/api/spotify/update node scripts/spotify-tracker.js');
-    process.exit(1);
-}
+const API_KEY = process.env.SPOTIFY_API_KEY || 'big-shlawg';
 
 const getSpotifyStatus = () => {
     return new Promise((resolve, reject) => {
