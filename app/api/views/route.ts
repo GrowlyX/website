@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     if (!id) return badRequest('Missing id query parameter')
 
     const db = await getDb()
-    const doc = await db.collection('views').findOne<{ _id: string; count: number }>({ _id: id })
+    const doc = await db.collection('views').findOne<{ _id: string; count: number }>({ _id: id as any })
     const count = doc?.count ?? 0
 
     return new Response(JSON.stringify({ id, count }), {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const db = await getDb()
     const res = await db.collection('views').findOneAndUpdate(
-      { _id: id },
+      { _id: id as any },
       { $inc: { count: 1 }, $setOnInsert: { createdAt: new Date() }, $set: { updatedAt: new Date() } },
       { upsert: true, returnDocument: 'after' }
     )

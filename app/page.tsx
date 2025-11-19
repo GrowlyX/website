@@ -1,6 +1,7 @@
 import { BlogPosts } from 'app/components/posts'
 import ImageRotator from 'app/components/image-rotator'
 import ViewCounter from 'app/components/view-counter'
+import SpotifyPlaying from 'app/components/spotify-playing'
 
 export default function Page() {
   return (
@@ -32,6 +33,7 @@ export default function Page() {
       <div className="my-8">
         <BlogPosts />
       </div>
+      <SpotifyPlaying />
     </section>
   )
 }
