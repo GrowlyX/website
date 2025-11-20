@@ -13,6 +13,9 @@ const navItems = {
     'https://www.youtube.com/@subhamkts': {
         name: 'youtube',
     },
+    'https://x.com/growlygg': {
+        name: 'x',
+    },
     '/assets/resume.pdf': {
         name: 'resume',
     },
