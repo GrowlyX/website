@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "website.name" . }}
+  labels:
+    app: {{ include "website.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "website.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "website.name" . }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- if .Values.mongodb.enabled }}
+            - name: MONGODB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.credentialsSecret }}
+                  key: username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.credentialsSecret }}
+                  key: password
+            - name: MONGODB_DB
+              value: {{ .Values.mongodb.database | quote }}
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@{{ .Values.mongodb.service.name }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.mongodb.service.port }}/{{ .Values.mongodb.database }}?authSource=admin"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

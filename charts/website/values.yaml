@@ -1,0 +1,40 @@
+replicaCount: 1
+
+image:
+  repository: internal-registry-docker-registry.registry.svc.cluster.local:5000/growly-website
+  pullPolicy: Always
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "7.0"
+    pullPolicy: IfNotPresent
+  service:
+    name: growly-mongodb
+    port: 27017
+  database: "blog"
+  credentialsSecret: "growly-mongodb-credentials"
+  storage:
+    size: 5Gi
+    storageClass: "local-path"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi

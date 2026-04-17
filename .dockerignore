@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+.git
+.github
+.idea
+.vscode
+.env
+.env.*
+!.env.example
+charts
+argocd
+scripts
+*.md
+Dockerfile
+.dockerignore
