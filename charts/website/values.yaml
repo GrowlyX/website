@@ -12,10 +12,10 @@ service:
 resources:
   requests:
     cpu: 50m
-    memory: 128Mi
-  limits:
-    cpu: 300m
     memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
 
 mongodb:
   enabled: true
@@ -31,10 +31,22 @@ mongodb:
   storage:
     size: 5Gi
     storageClass: "local-path"
+  # NOTE: the memory *limit* must leave headroom for WiredTiger crash-recovery.
+  # A 384Mi limit was too small: steady-state usage (~478Mi) crossed it after
+  # ~a week, the first OOMKill left a dirty journal, and every subsequent
+  # restart OOMed mid-recovery -> permanent CrashLoopBackOff (site down).
   resources:
     requests:
-      cpu: 50m
-      memory: 192Mi
+      cpu: 250m
+      memory: 512Mi
     limits:
-      cpu: 500m
-      memory: 384Mi
+      cpu: "2"
+      memory: 2Gi
+  # Nightly mongodump backup CronJob (see templates/mongodb-backup-cronjob.yaml).
+  backup:
+    enabled: true
+    schedule: "0 4 * * *"   # 04:00 UTC daily
+    retentionDays: 7
+    storage:
+      size: 5Gi
+      storageClass: "local-path"

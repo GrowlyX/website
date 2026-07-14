@@ -37,18 +37,31 @@ spec:
                   key: password
             - name: MONGO_INITDB_DATABASE
               value: {{ .Values.mongodb.database | quote }}
-          livenessProbe:
-            exec:
-              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-            initialDelaySeconds: 30
-            periodSeconds: 20
-            timeoutSeconds: 5
-          readinessProbe:
-            exec:
-              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+          # Probes use a cheap TCP check, not `mongosh ... ping`: mongosh spins up
+          # a full Node.js shell each invocation, which under CPU load blows past
+          # the timeout and false-fails, restarting a healthy DB. The startupProbe
+          # gives WiredTiger crash-recovery up to ~10min before liveness engages.
+          startupProbe:
+            tcpSocket:
+              port: 27017
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
           resources:
             {{- toYaml .Values.mongodb.resources | nindent 12 }}
           volumeMounts:
