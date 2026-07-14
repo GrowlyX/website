@@ -9,6 +9,18 @@ service:
   type: ClusterIP
   port: 3000
 
+# Self-hosted uptime check: a CronJob curls the public URL and posts to a
+# Discord webhook on failure. Webhook lives in a Secret (uptimeCheck.webhookSecret,
+# key `webhook`), created out-of-band so it never lands in git.
+# NOTE: this runs in-cluster, so it catches app-level outages (e.g. 502 when the
+# DB is down) but not a full node/cluster failure — pair with an external monitor
+# for that.
+uptimeCheck:
+  enabled: true
+  schedule: "*/5 * * * *"
+  url: "https://growly.gg"
+  webhookSecret: "growly-uptime-discord"
+
 resources:
   requests:
     cpu: 50m
