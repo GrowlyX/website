@@ -1,0 +1,57 @@
+{{- if .Values.uptimeCheck.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: growly-uptime-check
+  labels:
+    app: growly-uptime-check
+spec:
+  schedule: {{ .Values.uptimeCheck.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels:
+            app: growly-uptime-check
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: check
+              image: curlimages/curl:8.11.0
+              env:
+                - name: TARGET_URL
+                  value: {{ .Values.uptimeCheck.url | quote }}
+                - name: DISCORD_WEBHOOK
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.uptimeCheck.webhookSecret }}
+                      key: webhook
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -u
+                  # Retry a few times so a single blip doesn't page.
+                  code=0
+                  for i in 1 2 3; do
+                    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$TARGET_URL" || echo 000)"
+                    [ "$code" = "200" ] && { echo "OK $TARGET_URL -> $code"; exit 0; }
+                    sleep 5
+                  done
+                  echo "DOWN $TARGET_URL -> $code"
+                  payload="$(printf '{"content":":rotating_light: **growly.gg is DOWN** — %s returned HTTP %s"}' "$TARGET_URL" "$code")"
+                  curl -s -m 15 -H 'Content-Type: application/json' -d "$payload" "$DISCORD_WEBHOOK" >/dev/null || true
+                  exit 1
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+{{- end }}
