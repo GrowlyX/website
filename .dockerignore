@@ -8,10 +8,7 @@ build
 .vscode
 .env
 .env.*
-!.env.example
-charts
-argocd
-scripts
+deploy
 *.md
 Dockerfile
 .dockerignore

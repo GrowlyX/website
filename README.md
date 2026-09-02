@@ -1,38 +1,19 @@
-# Website
-A blog & about-me website based on a starter Next.js template.
+# growly.gg
 
-## Views tracking (MongoDB)
-This project tracks page views (home page and each blog post) using MongoDB.
+Subham's blog and about-me. Next.js 15 with `output: 'export'`: the whole site is rendered to static files at build time and served by nginx. There is no server runtime and no database.
 
-Setup:
-1. Create a MongoDB database (MongoDB Atlas or self‑hosted).
-2. Copy `.env.example` to `.env.local` and set values:
+## Develop
 
-```
-MONGODB_URI=your-connection-string
-MONGODB_DB=blog
+```bash
+bun install
+bun run dev        # http://localhost:3000
+bun run build      # static site in ./out
 ```
 
-3. Install deps and start the app:
+Posts are MDX files in `app/blog/posts/`. OG images (`/opengraph-image`, `/blog/<slug>/opengraph-image`), `rss.xml`, `sitemap.xml` and `robots.txt` are generated at build time.
 
-```
-npm install
-npm run dev
-```
+## Deploy
 
-How it works:
-- API route: `app/api/views/route.ts` exposes `GET /api/views?id=<id>` and `POST /api/views` with `{ id }` to increment.
-- Client component: `app/components/view-counter.tsx` increments on mount and shows the current count.
-- Integration:
-  - Home page uses id `home` in `app/page.tsx`.
-  - Blog posts use id `blog/<slug>` in `app/blog/[slug]/page.tsx`.
+Every push to `main` builds `ghcr.io/growlyx/website:latest` (multi-arch) via `.github/workflows/build-image.yml`. The DormLab cluster runs `deploy/k8s.yaml`; Keel polls GHCR and rolls the Deployment when the image changes. Public traffic arrives through the cluster's Cloudflare Tunnel and Envoy Gateway; `www.growly.gg` redirects to `growly.gg` in nginx.
 
-Collection:
-- Database collection `views`, documents shaped like:
-```
-{ _id: string, count: number, createdAt?: Date, updatedAt?: Date }
-```
-
-Notes:
-- The API route is marked `dynamic = 'force-dynamic'` to bypass caching.
-- The MongoDB client is cached across hot reloads in `app/lib/mongodb.ts`.
+First-time apply: `kubectl apply -f deploy/k8s.yaml` (see github.com/dormlab/cluster for the cluster itself).
