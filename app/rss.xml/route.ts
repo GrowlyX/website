@@ -1,6 +1,8 @@
 import { baseUrl } from 'app/sitemap'
 import { getBlogPosts } from 'app/blog/utils'
 
+export const dynamic = 'force-static'
+
 export async function GET() {
   let allBlogs = await getBlogPosts()
 
@@ -36,7 +38,7 @@ export async function GET() {
 
   return new Response(rssFeed, {
     headers: {
-      'Content-Type': 'text/xml',
+      'Content-Type': 'application/rss+xml; charset=utf-8',
     },
   })
 }

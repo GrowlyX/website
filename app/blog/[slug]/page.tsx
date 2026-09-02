@@ -4,7 +4,6 @@ import {formatDate, getBlogPosts} from 'app/blog/utils'
 import {baseUrl} from 'app/sitemap'
 import {MDXRemote} from 'next-mdx-remote/rsc'
 import {highlight} from 'sugar-high'
-import ViewCounter from 'app/components/view-counter'
 
 // Custom components for MDX
 const components = {
@@ -41,9 +40,7 @@ export async function generateMetadata({params}) {
         summary: description,
         image,
     } = post.metadata
-    let ogImage = image
-        ? image
-        : `${baseUrl}/og?title=${encodeURIComponent(title)}`
+    let ogImage = image ? `${baseUrl}${image}` : `${baseUrl}/blog/${post.slug}/opengraph-image`
 
     return {
         title,
@@ -92,11 +89,11 @@ export default async function Blog({params}) {
                         description: post.metadata.summary,
                         image: post.metadata.image
                             ? `${baseUrl}${post.metadata.image}`
-                            : `/og?title=${encodeURIComponent(post.metadata.title)}`,
+                            : `${baseUrl}/blog/${post.slug}/opengraph-image`,
                         url: `${baseUrl}/blog/${post.slug}`,
                         author: {
                             '@type': 'Person',
-                            name: 'My Portfolio',
+                            name: 'Subham',
                         },
                     }),
                 }}
@@ -108,7 +105,6 @@ export default async function Blog({params}) {
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     {formatDate(post.metadata.publishedAt)}
                 </p>
-                <ViewCounter id={`blog/${post.slug}`} className="text-neutral-600 dark:text-neutral-400" />
             </div>
             <article className="prose">
                 <MDXRemote source={post.content} components={components} />
