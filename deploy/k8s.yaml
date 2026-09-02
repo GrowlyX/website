@@ -1,5 +1,5 @@
 # growly.gg on the DormLab cluster (github.com/dormlab/cluster). Apply once; Keel then rolls out new `latest` images
-# pushed by .github/workflows/build-image.yml, polling GHCR every 2 minutes. Public hostnames are attached to the
+# pushed by .github/workflows/build-image.yml, polling the `latest` digest on GHCR every minute. Public hostnames are attached to the
 # cluster's Cloudflare Tunnel (growly.gg and www.growly.gg -> dormlab-gateway.envoy-gateway-system.svc.cluster.local:80).
 apiVersion: v1
 kind: Namespace
@@ -13,7 +13,8 @@ metadata:
   annotations:
     keel.sh/policy: force
     keel.sh/trigger: poll
-    keel.sh/pollSchedule: "@every 2m"
+    keel.sh/pollSchedule: "@every 1m"
+    keel.sh/match-tag: "true"     # keep the `latest` tag, roll when its digest changes
 spec:
   replicas: 2
   selector: {matchLabels: {app: website}}
