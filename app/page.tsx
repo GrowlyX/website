@@ -12,9 +12,15 @@ export default function Page() {
       <div className="mb-8">
         <ImageRotator
           images={[
-            { src: '/banners/x1.jpg', alt: 'Self Portrait' },
-            { src: '/banners/x2.png', alt: 'Interview' },
             { src: '/banners/x3.png', alt: 'Vibecoding' },
+            { src: '/banners/first-cliff-walk.jpg', alt: 'Cliff walk at First, above Grindelwald' },
+            { src: '/banners/paris-seine.jpg', alt: 'On the Seine at dusk with the Eiffel Tower behind' },
+            { src: '/banners/lucerne-river.jpg', alt: 'The Reuss from the Chapel Bridge, Lucerne' },
+            { src: '/banners/mountain-bike.jpg', alt: 'Mountain biking in the Alps' },
+            { src: '/banners/chapel-bridge.jpg', alt: 'On the Chapel Bridge in Lucerne' },
+            { src: '/banners/flower-market.jpg', alt: 'Flower market in Amsterdam' },
+            { src: '/banners/eiffel-night.jpg', alt: 'Eiffel Tower at night from a Seine boat' },
+            { src: '/banners/lucerne-village.jpg', alt: 'Lakeside village on Lake Lucerne' },
           ]}
           intervalMs={5000}
           width={1500}
