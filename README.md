@@ -1,6 +1,6 @@
 # growly.gg
 
-Subham's blog and about-me. Next.js 15 with `output: 'export'`: the whole site is rendered to static files at build time and served by nginx. There is no server runtime and no database.
+Subham's blog and about-me. Next.js 15 with `output: 'export'`: the whole site is rendered to static files at build time and served by GitHub Pages. There is no server runtime and no database.
 
 ## Develop
 
@@ -14,6 +14,6 @@ Posts are MDX files in `app/blog/posts/`. OG images (`/opengraph-image`, `/blog/
 
 ## Deploy
 
-Every push to `main` builds `ghcr.io/growlyx/website:latest` (multi-arch) via `.github/workflows/build-image.yml`. The DormLab cluster runs `deploy/k8s.yaml`; Keel polls GHCR and rolls the Deployment when the image changes. Public traffic arrives through the cluster's Cloudflare Tunnel and Envoy Gateway; `www.growly.gg` redirects to `growly.gg` in nginx.
+Every push to `main` builds the site and publishes `./out` to GitHub Pages via `.github/workflows/pages.yml`. `public/CNAME` pins the custom domain (`growly.gg`); `www.growly.gg` is redirected to the apex by Pages. Next writes the OG images as extensionless files, so the workflow renames them to `.png` and rewrites the `<meta>` tags before upload.
 
-First-time apply: `kubectl apply -f deploy/k8s.yaml` (see github.com/dormlab/cluster for the cluster itself).
+DNS (Cloudflare, DNS-only / grey cloud): `A growly.gg -> 185.199.108.153 / 109.153 / 110.153 / 111.153`, `CNAME www -> growlyx.github.io`.

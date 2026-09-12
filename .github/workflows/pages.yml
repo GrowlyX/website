@@ -1,0 +1,49 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      # Next writes the OG images as extensionless files, which Pages would serve as
+      # application/octet-stream (nginx used to force image/png). Give them a .png
+      # name and point the <meta> tags at it.
+      - name: Give OG images a .png extension
+        run: |
+          set -euo pipefail
+          find out -type f -name opengraph-image | while read -r f; do mv "$f" "$f.png"; done
+          find out -type f \( -name '*.html' -o -name '*.txt' \) -print0 \
+            | xargs -0 sed -i -E 's#/opengraph-image([?"\\])#/opengraph-image.png\1#g'
+          grep -rhoE 'opengraph-image[^"< ]*' out | sort -u
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
