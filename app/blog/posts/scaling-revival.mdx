@@ -1,0 +1,122 @@
+---
+title: 'How we scaled Revival from 0 to 6,000 players online'
+publishedAt: '2026-09-29'
+summary: 'Moving a game backend from two rented servers to a Kubernetes cluster with Agones in one weekend, and every fix it took to keep 64-player parks running at 6,000 concurrent players.'
+image: '/blog/scaling-revival/players-online.png'
+---
+
+I work on [Revival](https://revivalclient.net), a community project that brings NBA 2K17's online modes back after the official servers shut down. A week ago Revival ran on two rented servers: one in Virginia, one in Los Angeles. Each ran everything by itself, including logins, parks, the database, the store and the website. That was fine for a play-test. It was not fine for what happened next.
+
+This weekend, **6,351 players were online at the same time**, with **2,196 in parks** at once. This is how we got there, what the new setup looks like, what broke along the way, and what we did about it.
+
+![Players online, from the first players on the new cluster to a peak of 6,351](/blog/scaling-revival/players-online.png)
+
+## By the numbers
+
+- **6,351** players online at once, at 01:20 UTC on September 29
+- **2,196** players in parks at the same moment
+- **30,969** accounts, **8,658** of them created on September 28 alone
+- **22,549** different players in the last 24 hours
+- **148,819** hours played on Revival so far
+- **940,000** network packets a second through our servers at peak
+
+![New accounts per day since July](/blog/scaling-revival/new-accounts.png)
+
+## Where we started
+
+The old setup was simple. Each server ran the Revival backend (we call it **kindle**, written in Rust) as one big process, next to a database and a cache. When a server got busy, everything on it got slow together: parks lagged, logins timed out, and the only fix was "wait" or "restart it and hope".
+
+Two things made that impossible to keep:
+
+- **Parks are heavy.** A full 64-player park pushes around **20,000 network packets a second**. Put a dozen of those on one machine and it's moving a quarter of a million packets a second before anyone even logs in.
+- **One machine can't grow.** When the server was full, the server was full. There was nowhere to put more parks.
+
+## The new setup
+
+Revival now runs on a **Kubernetes cluster** (k3s) spread across five machines on the East and West coasts. Instead of one big process per server, every piece has its own job:
+
+- **Front doors** handle logins, sessions, MyCareer saves and everything else the game asks the server for.
+- **Edges** sit next to the front doors and carry the game's live traffic.
+- **Park servers** each run a single park instance. Every park is its own small game server with room for 64 players.
+- **MongoDB** stores player profiles, saves and purchases, with a live backup copy on a second machine and nightly backups off-site.
+- **Valkey** (a fast in-memory cache) holds sessions, the list of live parks and the login queue.
+- **Envoy** sits behind Cloudflare and routes website traffic to the site, the store and the API.
+
+All of it is described in code in one repository, secrets live in a proper secrets manager instead of config files, and every machine, park and request is graphed in Grafana. When something goes wrong now, we can see it happen, usually before players tell us.
+
+## The data behind it
+
+Every login, save, purchase and park session ends up in the database or the cache, so those two have to keep up with everything else.
+
+- **MongoDB** handles about **2,000 operations a second** at night-time traffic: over a thousand reads, a couple hundred updates and a steady stream of new records every second. It holds **13.5 million documents**, about 98 GB of data that compresses to 47 GB on disk, and writes around **11 GB of changes an hour** that stream to the backup copy in real time.
+- **Valkey** peaked near **4,300 commands a second**: every session check, every park keeping in touch with the others, and the login line.
+
+![Database operations per second: reads, cursor fetches, commands, updates and inserts](/blog/scaling-revival/database-ops.png)
+
+![Cache commands per second over launch night, peaking near 4,300](/blog/scaling-revival/cache-ops.png)
+
+## How parks work now
+
+Parks are the most demanding part of Revival, so they got the most work.
+
+Each park runs on **Agones**, an open-source system built for running game servers on Kubernetes. Parks are grouped into **fleets**, one per park world and region. Every fleet keeps a few empty parks warmed up and waiting, so a player joining gets a park that's already running instead of one being started from scratch.
+
+![Players in parks over launch night, peaking at 2,196](/blog/scaling-revival/players-in-parks.png)
+
+**Region-aware placement.** When a player enters a park, we pick a region based on where they are, and on the ping their launcher actually measured to each region. East Coast players land on East Coast parks, West Coast players on West Coast parks.
+
+**Spreading the load.** At first, new parks piled onto whichever machine already had the most, so one machine got hammered while others sat idle. We switched to spreading parks evenly across machines, which alone fixed a round of park lag.
+
+**Draining, not killing.** When we need to move parks off a machine, we mark them as draining. They stop taking new players, and once everyone has left on their own, the park shuts down. Nobody gets kicked for maintenance.
+
+**Rejoining the right game.** Players reported joining a park and landing in a previous game. That came from rejoining by match ID, which could send a player back to an old park. It now only follows them back when that park still exists and has room; otherwise they get a fresh one.
+
+## Moving everyone without logging anyone out
+
+Switching from the old servers to the new cluster had to happen live, with thousands of players online. Two rules:
+
+- **Nobody should have to log in again.** We synced sessions live from the old servers to the new cluster ahead of time, so when traffic moved over, every player's session was already there.
+- **Always be able to go back.** We moved a small slice of traffic first, watched it, and kept the old servers running until we were sure. Once everything had moved over, the old Virginia and Los Angeles machines were cleaned up and rejoined the cluster as extra park capacity.
+
+The database moved the same way. The new copy caught up in the background, then we switched over with a short step-down, not an outage.
+
+## Letting everyone in without falling over
+
+Going from a whitelist to open access in one step with thousands of people waiting would have flattened everything. So we built the door in stages:
+
+- **Rollout groups.** Instead of a whitelist, every account got a fixed random group, and we could open access to 10% of accounts, then more, while watching how the servers held up. Early access members always got straight in.
+- **An online ceiling.** Access is now open to everyone, with one safety net: a limit on how many players can be online at once, set to what the servers can actually handle. Below it, players walk straight in. At the limit, the launcher puts new players in a short first-come, first-served line and lets the next person in as someone leaves. **Anyone already playing is never pushed back into the line.**
+
+## Squeezing more out of every machine
+
+Once things were stable, we started measuring where the time actually goes. Some of what we found surprised us.
+
+**Parks barely use their own CPU.** Only about 15% of a park machine's CPU goes to running the parks themselves. The other 85% goes to the operating system moving network packets. So most of our work went into the network path, not the game logic.
+
+![Where a park server's CPU goes: about 15% running parks, 85% moving network packets](/blog/scaling-revival/park-cpu.png)
+
+![Packets per second across all servers, peaking near 940,000](/blog/scaling-revival/packets-per-second.png)
+
+- **Right-sizing parks.** We measured real usage across dozens of full parks. A full 64-player park averages about a fifth of a CPU core, with short spikes. Parks now reserve what they actually use, so more of them fit on each machine.
+- **Caps where they matter.** The machine that runs logins, the database and the cache can now only take a small, fixed number of parks, so a busy park can never slow down logins again.
+- **Cutting firewall overhead.** Every game packet was being checked against a long list of per-server network-policy rules we weren't actually using. Removing them cut a few percent of CPU off every packet on every park machine.
+- **Bigger connection tables.** The kernel keeps a table of active network connections. Under launch traffic, our busiest machine was halfway to its limit. We raised it several times over, so a traffic spike can't start silently dropping packets.
+- **Batching.** A park sends each game update to every player in it. Instead of one system call per player, it now hands the whole batch to the kernel in one call. Batching on the receive side is next.
+
+## What broke on launch night
+
+It wasn't all smooth. On launch night, parks started kicking players, and here's what happened.
+
+The cache that parks use to keep track of each other was saving a full snapshot of itself **every minute**, and rewriting its write log every few minutes on top of that. Each of those briefly freezes it. With launch-night traffic on a busy machine, the freezes got long enough that parks timed out talking to it and dropped the sessions of players inside them. We made snapshots hourly, made the log rewrites four times rarer, and later stopped it waiting on a slow shared disk for every write. The timeouts dropped to almost nothing.
+
+![Park timeouts per 10 minutes on launch night, and the fixes that ended them](/blog/scaling-revival/launch-night-timeouts.png) The same night, our nightly database backup was starving the machine that runs the cluster's control plane, so we stopped it and are moving it to a quieter hour.
+
+Both problems came from one lesson: **what's fine at 500 players isn't fine at 6,000.** Every one of these fixes started with a graph that looked wrong.
+
+## What's next
+
+- **More machines.** We're adding dedicated servers on the East Coast, which is where parks fill up first right now.
+- **A faster private network.** Traffic between our machines currently goes through an encrypted tunnel that runs in software. Moving it into the kernel will free up CPU on every machine and make parks more responsive.
+- **Contributing back.** Agones doesn't support one networking mode we'd like to use for parks, because of how its helper process picks its network ports. We're working on a change upstream so that mode works, which should fit roughly **20–25% more parks** on the same hardware. That benefits everyone running game servers on Agones, not just us.
+
+Thanks to everyone who played, reported bugs, and put up with the queue. Every "park broke" message pointed us at something real.
